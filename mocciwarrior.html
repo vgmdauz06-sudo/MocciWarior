@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MocciWarrior — Swap on HyperEVM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#13161e;--bg2:#1a1e2a;--bg3:#222736;
+  --border:#2a3048;--border2:#353d5c;
+  --text:#e2e8f8;--text2:#7a8ab0;--text3:#404868;
+  --accent:#6c7fff;--accent2:#4f5fe8;
+  --up:#34d399;--down:#f87171;--warn:#fbbf24;
+  --sans:'Space Grotesk',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+  --radius:14px;--radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;flex-direction:column}
+nav{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:-0.3px}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),#a78bfa);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.nav-links{display:flex;gap:24px}
+.nav-link{font-size:14px;color:var(--text2);text-decoration:none;font-weight:500;transition:color 0.15s}
+.nav-link:hover,.nav-link.active{color:var(--text)}
+.connect-btn{padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-family:var(--sans);font-weight:600;font-size:14px;cursor:pointer;transition:all 0.15s}
+.connect-btn:hover{background:var(--accent2);transform:translateY(-1px)}
+.connect-btn.connected{background:var(--bg3);border:1px solid var(--border2);color:var(--text)}
+.hero{text-align:center;padding:60px 24px 40px}
+.hero h1{font-size:42px;font-weight:700;letter-spacing:-1px;background:linear-gradient(135deg,var(--text) 0%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:12px}
+.hero p{color:var(--text2);font-size:16px;max-width:400px;margin:0 auto}
+main{flex:1;display:flex;justify-content:center;align-items:flex-start;padding:0 24px 60px;gap:24px}
+.swap-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:100%;max-width:440px}
+.swap-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.swap-title{font-size:16px;font-weight:600}
+.settings-btn{background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;padding:4px;border-radius:6px;transition:background 0.15s}
+.settings-btn:hover{background:var(--bg3);color:var(--text)}
+.token-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;transition:border-color 0.15s;position:relative}
+.token-box:focus-within{border-color:var(--accent)}
+.token-label{font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px}
+.token-row{display:flex;align-items:center;gap:12px}
+.token-select{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;cursor:pointer;white-space:nowrap;transition:all 0.15s;min-width:140px}
+.token-select:hover{border-color:var(--accent);background:var(--bg)}
+.token-icon{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#a78bfa);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;overflow:hidden;flex-shrink:0}
+.token-icon img{width:100%;height:100%;object-fit:cover}
+.token-symbol{font-weight:600;font-size:15px}
+.token-chevron{color:var(--text3);font-size:12px;margin-left:auto}
+.token-amount{flex:1;background:none;border:none;color:var(--text);font-family:var(--mono);font-size:20px;font-weight:500;text-align:right;outline:none;width:100%}
+.token-amount::placeholder{color:var(--text3)}
+.token-usd{font-size:12px;color:var(--text3);text-align:right;margin-top:6px;font-family:var(--mono)}
+.token-balance{font-size:11px;color:var(--text3);margin-top:4px}
+.token-balance span{color:var(--text2);cursor:pointer}
+.token-balance span:hover{color:var(--accent)}
+.swap-arrow-wrap{display:flex;justify-content:center;margin:8px 0;position:relative;z-index:1}
+.swap-arrow{width:36px;height:36px;background:var(--bg3);border:2px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;font-size:16px;color:var(--text2)}
+.swap-arrow:hover{border-color:var(--accent);color:var(--accent);transform:rotate(180deg)}
+.route-info{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 16px;margin-top:12px;font-size:13px}
+.route-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;color:var(--text2)}
+.route-row span:last-child{color:var(--text);font-family:var(--mono);font-size:12px}
+.route-row.highlight span:last-child{color:var(--up)}
+.swap-btn{width:100%;margin-top:16px;padding:16px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:var(--radius-sm);font-family:var(--sans);font-size:16px;font-weight:700;cursor:pointer;transition:all 0.2s;letter-spacing:-0.2px}
+.swap-btn:hover{opacity:0.9;transform:translateY(-1px);box-shadow:0 8px 24px rgba(108,127,255,0.3)}
+.swap-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;box-shadow:none}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:360px}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.modal-title{font-weight:600;font-size:15px}
+.modal-close{background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px}
+.slippage-options{display:flex;gap:8px;margin-bottom:12px}
+.slip-btn{flex:1;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s}
+.slip-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.slip-input-wrap{display:flex;align-items:center;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 12px}
+.slip-input{flex:1;background:none;border:none;color:var(--text);font-family:var(--mono);font-size:14px;outline:none}
+.token-modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);width:400px;max-height:560px;display:flex;flex-direction:column;overflow:hidden}
+.token-search{padding:16px;border-bottom:1px solid var(--border)}
+.search-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--sans);font-size:14px;outline:none}
+.search-input:focus{border-color:var(--accent)}
+.token-list{flex:1;overflow-y:auto;padding:8px}
+.token-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background 0.1s}
+.token-item:hover{background:var(--bg3)}
+.token-item-symbol{font-weight:600;font-size:14px}
+.token-item-name{font-size:12px;color:var(--text3)}
+.status-bar{text-align:center;padding:12px;font-size:13px;color:var(--text2);min-height:20px}
+.status-bar.error{color:var(--down)}
+.status-bar.success{color:var(--up)}
+.status-bar.loading{color:var(--warn)}
+.stats-panel{width:280px;flex-shrink:0}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:12px}
+.stat-card-title{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;font-weight:500}
+.fee-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(108,127,255,0.1);border:1px solid rgba(108,127,255,0.3);border-radius:6px;padding:4px 10px;font-size:12px;color:var(--accent);font-weight:500}
+/* Wallet modal */
+.wallet-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.wallet-btn{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.15s;font-family:var(--sans)}
+.wallet-btn:hover{border-color:var(--accent);background:var(--bg)}
+.wallet-btn img{width:40px;height:40px;border-radius:10px}
+.wallet-btn-name{font-size:13px;font-weight:500;color:var(--text)}
+.wallet-btn-desc{font-size:11px;color:var(--text3)}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+footer{text-align:center;padding:20px;font-size:12px;color:var(--text3);border-top:1px solid var(--border)}
+@media(max-width:768px){main{flex-direction:column;align-items:center}.stats-panel{width:100%;max-width:440px}nav{padding:12px 16px}.nav-links{display:none}.hero h1{font-size:28px}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo"><div class="logo-icon">⚔️</div>MocciWarrior</div>
+  <div class="nav-links">
+    <a href="#" class="nav-link active">Swap</a>
+    <a href="#" class="nav-link">Explore</a>
+  </div>
+  <button class="connect-btn" id="connect-btn" onclick="openWalletModal()">Connect Wallet</button>
+</nav>
+
+<div class="hero">
+  <h1>Swap on HyperEVM</h1>
+  <p>Best rates across all HyperEVM pools, powered by Kyber Aggregator</p>
+</div>
+
+<main>
+  <div class="swap-card">
+    <div class="swap-header">
+      <span class="swap-title">Swap</span>
+      <button class="settings-btn" onclick="openSettings()">⚙️</button>
+    </div>
+    <div class="token-box">
+      <div class="token-label">You Pay</div>
+      <div class="token-row">
+        <div class="token-select" onclick="openTokenModal('from')">
+          <div class="token-icon" id="from-icon"><img src="" id="from-img" onerror="this.style.display='none'" style="display:none"><span id="from-letter">U</span></div>
+          <span class="token-symbol" id="from-symbol">USDC</span>
+          <span class="token-chevron">▾</span>
+        </div>
+        <input type="number" class="token-amount" id="from-amount" placeholder="0.00" oninput="onFromInput()"/>
+      </div>
+      <div class="token-usd" id="from-usd">≈ $0.00</div>
+      <div class="token-balance">Balance: <span id="from-balance" onclick="setMax()">0.00</span></div>
+    </div>
+    <div class="swap-arrow-wrap">
+      <div class="swap-arrow" onclick="flipTokens()">⇅</div>
+    </div>
+    <div class="token-box">
+      <div class="token-label">You Receive</div>
+      <div class="token-row">
+        <div class="token-select" onclick="openTokenModal('to')">
+          <div class="token-icon" id="to-icon" style="background:linear-gradient(135deg,#34d399,#059669)"><img src="" id="to-img" onerror="this.style.display='none'" style="display:none"><span id="to-letter">K</span></div>
+          <span class="token-symbol" id="to-symbol">KNTQ</span>
+          <span class="token-chevron">▾</span>
+        </div>
+        <input type="number" class="token-amount" id="to-amount" placeholder="0.00" readonly style="color:var(--text2)"/>
+      </div>
+      <div class="token-usd" id="to-usd">≈ $0.00</div>
+      <div class="token-balance">Balance: <span id="to-balance">0.00</span></div>
+    </div>
+    <div class="route-info" id="route-info" style="display:none">
+      <div class="route-row"><span>Rate</span><span id="rate-text">—</span></div>
+      <div class="route-row"><span>Price Impact</span><span id="impact-text">—</span></div>
+      <div class="route-row"><span>Slippage</span><span id="slip-text">0.5%</span></div>
+      <div class="route-row"><span>Platform Fee</span><span id="fee-text">0.08%</span></div>
+      <div class="route-row highlight"><span>Min. Received</span><span id="min-text">—</span></div>
+    </div>
+    <div class="status-bar" id="status-bar"></div>
+    <button class="swap-btn" id="swap-btn" onclick="executeSwap()" disabled>Enter an amount</button>
+  </div>
+
+  <div class="stats-panel">
+    <div class="stat-card">
+      <div class="stat-card-title">Platform</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">Network</span><span style="font-weight:500">HyperEVM</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">Aggregator</span><span style="font-weight:500">KyberSwap</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">Fee</span><div class="fee-badge">⚔️ 0.08%</div></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">Pools</span><span style="font-weight:500" id="dex-count">20+ DEXs</span></div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-title">Supported Tokens</div>
+      <div style="font-size:24px;font-weight:700;color:var(--accent)" id="token-count">10,000+</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">All HyperEVM tokens</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-title">How it works</div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--text2)">
+        <div>1. Select tokens & amount</div>
+        <div>2. Connect your wallet</div>
+        <div>3. Review rate & confirm</div>
+        <div>4. Sign transaction</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Swap Settings</span><button class="modal-close" onclick="closeSettings()">✕</button></div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:10px">Slippage Tolerance</div>
+    <div class="slippage-options">
+      <button class="slip-btn" onclick="setSlippage(0.1,this)">0.1%</button>
+      <button class="slip-btn active" onclick="setSlippage(0.5,this)">0.5%</button>
+      <button class="slip-btn" onclick="setSlippage(1,this)">1%</button>
+      <button class="slip-btn" onclick="setSlippage(3,this)">3%</button>
+    </div>
+    <div class="slip-input-wrap">
+      <input class="slip-input" type="number" placeholder="Custom %" oninput="setSlippage(parseFloat(this.value),null)">
+      <span style="color:var(--text3);font-size:13px">%</span>
+    </div>
+  </div>
+</div>
+
+<!-- TOKEN MODAL -->
+<div class="modal-overlay" id="token-modal">
+  <div class="token-modal">
+    <div class="token-search">
+      <div class="modal-header" style="margin-bottom:12px"><span class="modal-title">Select Token</span><button class="modal-close" onclick="closeTokenModal()">✕</button></div>
+      <input class="search-input" type="text" id="token-search-input" placeholder="Search by name or address..." oninput="filterTokens(this.value)">
+    </div>
+    <div class="token-list" id="token-list"></div>
+  </div>
+</div>
+
+<!-- WALLET MODAL -->
+<div class="modal-overlay" id="wallet-modal">
+  <div class="modal" style="width:420px">
+    <div class="modal-header"><span class="modal-title">Connect Wallet</span><button class="modal-close" onclick="closeWalletModal()">✕</button></div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:12px">Choose your wallet to connect to HyperEVM</div>
+    <div class="wallet-grid">
+      <button class="wallet-btn" onclick="connectMetaMask()">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" onerror="this.src=''">
+        <span class="wallet-btn-name">MetaMask</span>
+        <span class="wallet-btn-desc">Browser extension</span>
+      </button>
+      <button class="wallet-btn" onclick="connectWalletConnect()">
+        <img src="https://avatars.githubusercontent.com/u/37784886" onerror="this.src=''">
+        <span class="wallet-btn-name">WalletConnect</span>
+        <span class="wallet-btn-desc">300+ wallets</span>
+      </button>
+      <button class="wallet-btn" onclick="connectMetaMask()">
+        <img src="https://rabby.io/assets/images/logo-128.png" onerror="this.src=''">
+        <span class="wallet-btn-name">Rabby</span>
+        <span class="wallet-btn-desc">Browser extension</span>
+      </button>
+      <button class="wallet-btn" onclick="connectMetaMask()">
+        <img src="https://trustwallet.com/assets/images/media/assets/TWT.png" onerror="this.src=''">
+        <span class="wallet-btn-name">Trust Wallet</span>
+        <span class="wallet-btn-desc">Mobile & extension</span>
+      </button>
+    </div>
+    <div style="margin-top:12px;padding:10px;background:var(--bg3);border-radius:8px;font-size:11px;color:var(--text3);text-align:center">
+      By connecting, you agree to MocciWarrior Terms of Service
+    </div>
+  </div>
+</div>
+
+<footer>MocciWarrior — Powered by KyberSwap Aggregator on HyperEVM · Chain ID 999</footer>
+
+<script type="module">
+import { createWeb3Modal, defaultWagmiConfig } from 'https://esm.sh/@web3modal/wagmi@5.1.6';
+import { mainnet } from 'https://esm.sh/wagmi@2.12.4/chains';
+import { reconnect, getAccount, watchAccount, signMessage } from 'https://esm.sh/@wagmi/core@2.13.4';
+
+const WC_PROJECT_ID = 'e23e766ff237877f15fc54c9809a2a0c';
+
+const hyperEVM = {
+  id: 999,
+  name: 'HyperEVM',
+  nativeCurrency: { name: 'HYPE', symbol: 'HYPE', decimals: 18 },
+  rpcUrls: { default: { http: ['https://rpc.hyperliquid.xyz/evm'] } },
+  blockExplorers: { default: { name: 'HyperEVMScan', url: 'https://hyperevmscan.io' } },
+};
+
+const metadata = {
+  name: 'MocciWarrior',
+  description: 'Swap on HyperEVM',
+  url: window.location.origin,
+  icons: ['https://avatars.githubusercontent.com/u/37784886']
+};
+
+const wagmiConfig = defaultWagmiConfig({
+  chains: [hyperEVM],
+  projectId: WC_PROJECT_ID,
+  metadata,
+});
+
+reconnect(wagmiConfig);
+
+const modal = createWeb3Modal({
+  wagmiConfig,
+  projectId: WC_PROJECT_ID,
+  enableAnalytics: false,
+  themeMode: 'dark',
+  themeVariables: {
+    '--w3m-accent': '#6c7fff',
+    '--w3m-border-radius-master': '8px',
+  }
+});
+
+// Watch account changes
+watchAccount(wagmiConfig, {
+  onChange(account) {
+    if (account.address) {
+      window.S.wallet = account.address;
+      const short = account.address.slice(0,6)+'...'+account.address.slice(-4);
+      document.getElementById('connect-btn').textContent = short;
+      document.getElementById('connect-btn').classList.add('connected');
+      window.setStatus('Connected: '+short, 'success');
+      if (window.S.route) window.getQuote();
+      document.getElementById('swap-btn').textContent = 'Swap';
+    } else {
+      window.S.wallet = null;
+      document.getElementById('connect-btn').textContent = 'Connect Wallet';
+      document.getElementById('connect-btn').classList.remove('connected');
+    }
+  }
+});
+
+window._wcModal = modal;
+window._wcConfig = wagmiConfig;
+window.connectWalletConnect = () => { modal.open(); closeWalletModal(); };
+</script>
+
+<script>
+const KYBER_API = 'https://aggregator-api.kyberswap.com/hyperevm/api/v1';
+const FEE_BPS   = 8;
+const FEE_WALLET= '0xAC89D4BAbCEf717783F64F846C939F5f24BdeFc0';
+const USDC_ADDR = '0xb88339CB7199b77E23DB6E890353E22632Ba630f';
+const KNTQ_ADDR = '0x000000000000780555bd0bca3791f89f9542c2d6';
+
+const POPULAR = [
+  {symbol:'USDC',address:USDC_ADDR,decimals:6,name:'USD Coin',logoURI:''},
+  {symbol:'WHYPE',address:'0x5555555555555555555555555555555555555555',decimals:18,name:'Wrapped HYPE',logoURI:''},
+  {symbol:'KNTQ',address:KNTQ_ADDR,decimals:18,name:'Kinetiq',logoURI:''},
+  {symbol:'USDe',address:'0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34',decimals:18,name:'USDe',logoURI:''},
+  {symbol:'HYPE',address:'0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',decimals:18,name:'HYPE (Native)',logoURI:''},
+];
+
+window.S = {
+  fromToken:POPULAR[0], toToken:POPULAR[2],
+  slippage:0.5, route:null,
+  allTokens:[...POPULAR], activeModal:null, wallet:null,
+};
+
+const $=id=>document.getElementById(id);
+window.setStatus=(msg,cls='')=>{const el=$('status-bar');el.textContent=msg;el.className='status-bar '+(cls||'')};
+const fmt=(n,d=4)=>parseFloat(n).toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:d});
+
+function updateTokenUI(){
+  const f=S.fromToken,t=S.toToken;
+  $('from-symbol').textContent=f.symbol;$('from-letter').textContent=f.symbol[0];
+  $('to-symbol').textContent=t.symbol;$('to-letter').textContent=t.symbol[0];
+  ['from','to'].forEach(side=>{
+    const tk=side==='from'?f:t;
+    const img=$(side+'-img'),letter=$(side+'-letter');
+    if(tk.logoURI){img.src=tk.logoURI;img.style.display='block';letter.style.display='none';}
+    else{img.style.display='none';letter.style.display='block';}
+  });
+}
+
+async function loadTokens(){
+  try{
+    let all=[];
+    for(let page=1;page<=3;page++){
+      const r=await fetch(`https://ks-setting.kyberswap.com/api/v1/tokens?chainId=999&pageSize=100&page=${page}`);
+      const d=await r.json();
+      const tokens=(d.data?.tokens||[]).map(t=>({symbol:t.symbol,address:t.address.toLowerCase(),decimals:t.decimals,name:t.name||t.symbol,logoURI:t.logoURI||''}));
+      all=[...all,...tokens];
+      if(tokens.length<100)break;
+    }
+    if(all.length)S.allTokens=all;
+  }catch(e){}
+}
+
+function openTokenModal(side){S.activeModal=side;$('token-modal').classList.add('open');$('token-search-input').value='';renderTokenList(S.allTokens.slice(0,50));setTimeout(()=>$('token-search-input').focus(),100);}
+window.closeTokenModal=()=>{$('token-modal').classList.remove('open');S.activeModal=null;}
+function renderTokenList(tokens){
+  $('token-list').innerHTML=tokens.map(t=>`<div class="token-item" onclick="selectToken('${t.address}')"><div class="token-icon" style="background:linear-gradient(135deg,var(--accent),#a78bfa)">${t.logoURI?`<img src="${t.logoURI}" onerror="this.style.display='none'">`:t.symbol[0]}</div><div><div class="token-item-symbol">${t.symbol}</div><div class="token-item-name">${t.name}</div></div></div>`).join('');
+}
+function filterTokens(q){if(!q){renderTokenList(S.allTokens.slice(0,50));return;}const lq=q.toLowerCase();renderTokenList(S.allTokens.filter(t=>t.symbol.toLowerCase().includes(lq)||t.name.toLowerCase().includes(lq)||t.address===lq).slice(0,50));}
+function selectToken(addr){const token=S.allTokens.find(t=>t.address===addr.toLowerCase());if(!token)return;if(S.activeModal==='from')S.fromToken=token;else S.toToken=token;updateTokenUI();closeTokenModal();getQuote();}
+
+window.openSettings=()=>$('settings-modal').classList.add('open');
+window.closeSettings=()=>$('settings-modal').classList.remove('open');
+function setSlippage(val,btn){if(isNaN(val)||val<=0)return;S.slippage=val;document.querySelectorAll('.slip-btn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');$('slip-text').textContent=val+'%';}
+
+function flipTokens(){[S.fromToken,S.toToken]=[S.toToken,S.fromToken];updateTokenUI();$('from-amount').value='';$('to-amount').value='';getQuote();}
+function setMax(){$('from-amount').value=$('from-balance').textContent;onFromInput();}
+
+let quoteTimeout=null;
+function onFromInput(){clearTimeout(quoteTimeout);quoteTimeout=setTimeout(getQuote,600);}
+
+window.getQuote=async function(){
+  const amt=parseFloat($('from-amount').value);
+  if(!amt||amt<=0){$('to-amount').value='';$('route-info').style.display='none';$('swap-btn').disabled=true;$('swap-btn').textContent='Enter an amount';setStatus('');return;}
+  setStatus('Getting best rate...','loading');$('swap-btn').disabled=true;$('swap-btn').textContent='Fetching quote...';
+  try{
+    const amtIn=Math.floor(amt*Math.pow(10,S.fromToken.decimals));
+    const r=await fetch(`${KYBER_API}/routes?tokenIn=${S.fromToken.address}&tokenOut=${S.toToken.address}&amountIn=${amtIn}`);
+    const d=await r.json();
+    const rs=d?.data?.routeSummary;
+    if(!rs){setStatus('No route found','error');return;}
+    S.route=rs;
+    const amtOut=parseInt(rs.amountOut)/Math.pow(10,S.toToken.decimals);
+    const minOut=amtOut*(1-S.slippage/100);
+    const rate=amtOut/amt;
+    const impact=parseFloat(rs.priceImpact||0)*100;
+    $('to-amount').value=amtOut.toFixed(S.toToken.decimals>8?6:4);
+    $('from-usd').textContent='≈ $'+fmt(parseFloat(rs.amountInUsd||0),2);
+    $('to-usd').textContent='≈ $'+fmt(parseFloat(rs.amountOutUsd||0),2);
+    $('rate-text').textContent=`1 ${S.fromToken.symbol} = ${rate.toFixed(6)} ${S.toToken.symbol}`;
+    $('impact-text').textContent=(impact>0?'+':'')+impact.toFixed(3)+'%';
+    $('min-text').textContent=minOut.toFixed(4)+' '+S.toToken.symbol;
+    $('route-info').style.display='block';
+    if(!S.wallet){$('swap-btn').disabled=true;$('swap-btn').textContent='Connect Wallet to Swap';}
+    else{$('swap-btn').disabled=false;$('swap-btn').textContent=`Swap ${S.fromToken.symbol} → ${S.toToken.symbol}`;}
+    setStatus('');
+  }catch(e){setStatus('Failed to get quote','error');}
+}
+
+// Wallet modal
+window.openWalletModal=()=>$('wallet-modal').classList.add('open');
+window.closeWalletModal=()=>$('wallet-modal').classList.remove('open');
+
+window.connectMetaMask=async()=>{
+  closeWalletModal();
+  if(typeof window.ethereum==='undefined'){setStatus('MetaMask not found. Use WalletConnect instead.','error');return;}
+  try{
+    const accounts=await window.ethereum.request({method:'eth_requestAccounts'});
+    S.wallet=accounts[0];
+    const short=S.wallet.slice(0,6)+'...'+S.wallet.slice(-4);
+    $('connect-btn').textContent=short;$('connect-btn').classList.add('connected');
+    setStatus('Connected: '+short,'success');
+    try{await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x3E7'}]});}
+    catch(se){if(se.code===4902)await window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:'0x3E7',chainName:'HyperEVM',rpcUrls:['https://rpc.hyperliquid.xyz/evm'],nativeCurrency:{name:'HYPE',symbol:'HYPE',decimals:18},blockExplorerUrls:['https://hyperevmscan.io']}]});}
+    if(S.route)getQuote();
+  }catch(e){setStatus('Connection cancelled','error');}
+}
+
+window.executeSwap=async()=>{
+  if(!S.wallet){openWalletModal();return;}
+  if(!S.route){setStatus('Get a quote first','error');return;}
+  setStatus('Building transaction...','loading');$('swap-btn').disabled=true;$('swap-btn').textContent='Preparing...';
+  try{
+    const amt=$('from-amount').value;
+    const amtIn=Math.floor(parseFloat(amt)*Math.pow(10,S.fromToken.decimals));
+    const buildR=await fetch(`${KYBER_API}/route/build`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({routeSummary:S.route,sender:S.wallet,recipient:S.wallet,slippageTolerance:Math.floor(S.slippage*100),feeAmount:FEE_BPS,isInBps:true,feeReceiver:FEE_WALLET,source:'MocciWarrior'})});
+    const buildD=await buildR.json();
+    const tx=buildD?.data;
+    if(!tx){setStatus('Failed to build transaction','error');return;}
+    setStatus('Approve in wallet...','loading');$('swap-btn').textContent='Confirm in wallet...';
+    if(S.fromToken.address!=='0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'){
+      const allowanceData='0xdd62ed3e'+S.wallet.slice(2).padStart(64,'0')+tx.routerAddress.slice(2).padStart(64,'0');
+      const allowanceHex=await window.ethereum.request({method:'eth_call',params:[{to:S.fromToken.address,data:allowanceData},'latest']});
+      if(parseInt(allowanceHex,16)<amtIn){
+        setStatus('Approving token...','loading');
+        await window.ethereum.request({method:'eth_sendTransaction',params:[{from:S.wallet,to:S.fromToken.address,data:'0x095ea7b3'+tx.routerAddress.slice(2).padStart(64,'0')+'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'}]});
+        setStatus('Approved! Confirming swap...','loading');
+      }
+    }
+    const txHash=await window.ethereum.request({method:'eth_sendTransaction',params:[{from:S.wallet,to:tx.routerAddress,data:tx.data,value:tx.value||'0x0',gas:tx.gas}]});
+    setStatus('✅ Swap submitted!','success');
+    $('swap-btn').textContent=`Swap ${S.fromToken.symbol} → ${S.toToken.symbol}`;
+    $('swap-btn').disabled=false;
+    const link=document.createElement('a');
+    link.href='https://hyperevmscan.io/tx/'+txHash;link.target='_blank';
+    link.style.cssText='color:var(--accent);font-size:12px;display:block;text-align:center;margin-top:8px';
+    link.textContent='View on Explorer →';
+    $('swap-btn').parentNode.appendChild(link);
+    setTimeout(()=>link.remove(),15000);
+  }catch(e){
+    if(e.code===4001)setStatus('Transaction rejected','error');
+    else setStatus('Failed: '+(e.message||'').slice(0,60),'error');
+    $('swap-btn').disabled=false;$('swap-btn').textContent=`Swap ${S.fromToken.symbol} → ${S.toToken.symbol}`;
+  }
+}
+
+document.querySelectorAll('.modal-overlay').forEach(el=>{el.addEventListener('click',e=>{if(e.target===el){el.classList.remove('open');S.activeModal=null;}});});
+updateTokenUI();loadTokens();
+</script>
+</body>
+</html>
